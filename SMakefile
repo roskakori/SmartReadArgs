@@ -1,100 +1,76 @@
 #
-# makefile for FinalRDArgs()
+# SMakefile for SmartReadArgs
 #
-# $VER: SMakeFile 1.2 (08.01.95)
+# $VER: SMakeFile 1.3 (3.9.98)
 #
-# by Stefan Ruppert
+# (W) by Stefan Ruppert, updated by Thomas Aglassinger
 #
 
-NAME      = extrdargs
+NAME      = SmartReadArgs
 VERSION   = 1
-REVISION  = 5
+REVISION  = 6
 
-DOC2GUIDE = xrefconvert
-AUTODOC   = makedoc
 CC        = sc
 RM        = delete quiet
-MV        = rename
+CP        = copy quiet clone
+AUTODOC   = robodoc
 
-DEBUG     = DEFINE=DEBUG_CODE DEBUG=LINE
-CFLAGS    = NOSTKCHK VERBOSE
-ADFLAGS   = BEGIN "/**LL******" END "******" SKIPSTRING "**" CONVERTCOMMENTS TOC VERBOSE
-
-SRCS      = $(NAME).c
-HEADER    = $(NAME).h
-OBJS      = $(NAME).o
-DOC       = $(NAME).doc
+DEBUG     = DEFINE=DEBUG_CODE=1 DEBUG=SF
+#OPTIMIZE  = OPTIMIZE
+CFLAGS    = $(DEBUG) $(OPTIMIZE)
+ADFLAGS   = SORT TOC 
+ADXREF    = XREF robodoc.xref
+PROGRAM   = test
+OBJS      = $(NAME).o $(PROGRAM).o
 GUIDE     = $(NAME).guide
-RELEASE   = $(NAME)_v$(VERSION).$(REVISION)
-README    = ReadMe
-TEST      = test
-TESTTMP   = test.o test.lnk
 
-##############
 #
-# work
+# Targets
 #
 
-all: $(OBJS) $(TEST)
+all: $(OBJS) $(PROGRAM)
 
+$(PROGRAM) : $(OBJS)
+   $(CC) $(CFLAGS) $(OBJS) LINK PNAME $(PROGRAM)
 
-.c.o:
-   $(CC) $(DEBUG) $(OPTIMZE) $(CFLAGS) $*.c
-
-.c.doc:
-   -$(AUTODOC) $*.c AUTODOC $*.doc $(ADFLAGS)
-
-.doc.guide:
-   makexref $(DOC) $(HEADER) to t:extrdargs.xref category TEMP NOICON
-   loadxref t:extrdargs.xref
-   xrefconvert FROM $*.doc TO "" VERBOSE
-   expungexref category TEMP
-   $(RM) $*.guide
-   $(MV) $* $*.guide
-
-$(TEST) : $(OBJS) test.c
-   $(CC) $(CFLAGS) $(OBJS) LIB lib:debug.lib LINK test.c PNAME test
-
-#############
 #
-# dependencies
+# Pattern rules
+#
+.c.o :
+   $(CC) $(CFLAGS) $*.c
+
+.c.doc :
+   -$(AUTODOC) $*.c $*.doc $(ADFLAGS)
+
+.doc.guide :
+   -$(AUTODOC) $*.c $*.guide GUIDE $(ADFLAGS)
+
+#
+# Dependencies
 #
 
-$(OBJS) : $(HEADER)
+SmartReadArgs.o : SmartReadArgs.c SmartReadArgs.h
 
+test.o : test.c SmartReadArgs.h
 
-#############
+SmartReadArgs.guide : SmartReadArgs.doc
+
+SmartReadArgs.doc : SmartReadArgs.c
+
 #
-# SASC Install
+# Cleanup and rebuild
 #
+clean :
+   -$(RM) $(OBJS) $(PROGRAM)
 
-install:
-   copy $(OBJ) sc:lib/
-   copy $(HEADER) sc:include
+rebuild :
+   smake -s clean
+   smake all
 
-#############
 #
-# make release
+# Copy stuff to be used for work
 #
-
-release: clean $(DOC) $(GUIDE) makerelease
-
-
-makerelease:
-   smake DEBUG= OPTIMZE=OPT
-   -$(RM) $(TESTTMP)
-   lha -r u Release:$(RELEASE).lha /$(NAME)/#?
-   echo "Short:    WB/CLI transparent ReadArgs() Interface v$(VERSION).$(REVISION)" >pipe:aminetreadme
-   echo "Author:   Stefan Ruppert" >pipe:aminetreadme
-   echo "Type:     dev/misc*n" >pipe:aminetreadme
-   copy $(README) to pipe:aminetreadme
-   type pipe:aminetreadme >Release:$(RELEASE).readme
-
-#############
-#
-# clean up
-#
-
-clean:
-   -$(RM) $(OBJS) $(TEST) $(TESTTMP)
-
+install :
+   $(CP) $(NAME).h   sc:include/
+   $(CP) $(NAME).o   sc:lib/
+   $(CP) $(NAME).doc autodocs:
